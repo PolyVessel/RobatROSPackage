@@ -3,12 +3,16 @@ import subprocess
 from datetime import datetime, timezone
 from drivers.util import TimeoutException, time_limit
 import os
-from ublox_gps import UbloxGps
-import serial
+
 
 class GPSNoSignal(Exception): pass
 
 class GPSData():
+    """The GPSData class represents a set of GPS data, including the current time,
+    latitude and longitude, heading, and various accuracy and precision values.
+    This class is used to store the data returned by the GPS module and make it
+    available to other parts of the code.
+    """
     def __init__(self, current_time_utc, lon, lat, 
         headMot, numSV, gSpeed, sAcc, hAcc, headAcc):
 
@@ -23,14 +27,29 @@ class GPSData():
         self.headAcc = headAcc
 
 class GPS:
-    def __init__(self, serial_port_name, timeout):
-        self.GPS_TIMEOUT_SEC = timeout
+    """The GPS class provides an interface for communicating with a GPS module
+    and retrieving data from it. It uses the UbloxGps class from the ublox_gps
+    library to communicate with the GPS module, and the serial library to
+    access the serial port where the GPS module is connected.
+    """
 
-        with time_limit(self.GPS_TIMEOUT_SEC):
+    def __init__(self, gps, serial, timeout):
+        self.timeout = timeout
+        self.serial = serial
+        self.gps = gps
+
+    @classmethod
+    def fromgpsconfig(cls, serial_port_name, timeout):
+        with time_limit(timeout):
+            from ublox_gps import UbloxGps
+            import serial
             # Connect GPS module to GPS UART
-            self.serial_port = serial.Serial(serial_port_name, baudrate=9600, timeout=self.GPS_TIMEOUT_SEC, stopbits=serial.STOPBITS_ONE,
+            serial_port = serial.Serial(serial_port_name, baudrate=9600, timeout=timeout, stopbits=serial.STOPBITS_ONE,
                                             parity=serial.PARITY_NONE, bytesize=serial.EIGHTBITS)
-            self.gps = UbloxGps(self.serial_port)
+            gps = UbloxGps(serial_port)
+
+            return cls(gps, serial_port, timeout)
+
 
     def __del__(self):
         """Closes serial port when done"""
@@ -39,16 +58,6 @@ class GPS:
         except Exception as e:
             pass #Expected for Unit tests
 
-    def priv_get_GPS_data(self):
-        """Do not Use Outside of GPS
-        Seperates Actually getting data for Unit testing"""
-        # Init if not already
-        if not hasattr(self, 'gps'):
-            self.init()
-
-        return self.gps.geo_coords()
-
-        
 
     def poll_sensor(self) -> GPSData:
         """Polls the GPS for sensor data, initializing the GPS if needed.
@@ -72,8 +81,8 @@ class GPS:
            headAcc -> Accuracy of Heading in deg
         """
 
-        with time_limit(self.GPS_TIMEOUT_SEC):
-            gps_data = self.priv_get_GPS_data()
+        with time_limit(self.timeout):
+            gps_data = self.gps.geo_coords()
 
             current_date_time = datetime(gps_data.year, gps_data.month, gps_data.day,
                                         hour=gps_data.hour, minute=gps_data.min, second=gps_data.sec,
