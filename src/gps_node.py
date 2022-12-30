@@ -35,7 +35,7 @@ class GPSNode():
     def configure_gps(self):
         serial_port = rospy.get_param('gps/serial_port')
         timeout = rospy.get_param('gps/timeout')
-        return GPS(serial_port, timeout)
+        return GPS.fromgpsconfig(serial_port, timeout)
 
     def get_gps_data(self, gps):
         try:

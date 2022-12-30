@@ -3,6 +3,7 @@
 from drivers.radio import Radio, RadioResponseBad
 import rospy
 from std_msgs.msg import Bool
+from roboat_pkg.msg import telemetry as telemetry_msg
 
 def configure_radio():
     serial_port = rospy.get_param('lora_radio/serial_port')
@@ -25,11 +26,14 @@ def test_radio(radio, e_stop_pub):
 
 def comms_node():
     e_stop_pub = rospy.Publisher('e_stop', Bool, queue_size=1)
+    telemetry_listener = rospy.Subscriber('telemetry_logs', telemetry_msg)
     rospy.init_node('comms')
     
     radio = configure_radio()
     test_radio(radio, e_stop_pub)
     rospy.spin()
+
+
 
 if __name__ == "__main__":
     try:

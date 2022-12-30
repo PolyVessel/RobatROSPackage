@@ -6,7 +6,6 @@ class RadioResponseBad(Exception): pass
 class Radio:
 
     def __init__(cls, serial_port, m0_pin, m1_pin, aux_pin):
-
         # Connect to Radio Via UART
         cls.serial_port = serial.Serial(serial_port, baudrate=9600, timeout=3)
         
@@ -88,8 +87,15 @@ class Radio:
         return (radio_resp[2],radio_resp[3]) 
         
 
-    
+    def (self):
+       return self.serial_port.in_waiting
 
     def _block_until_module_free(self):
         while not GPIO.input(self.aux_pin):
             pass # Block until Aux is 1
+    
+    def transmit(data: bytes):
+        pass
+    
+    
+    def bytes_waiting()
